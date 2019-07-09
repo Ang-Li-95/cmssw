@@ -13,6 +13,7 @@
 #include <vector>
 #include <iostream>
 #include <atomic>
+#include <cmath>
 using namespace std;
 
 //#define DEBUG_ENABLED 
@@ -55,7 +56,7 @@ MTDThresholdClusterizer::fillDescriptions(edm::ParameterSetDescription& desc) {
 //!  size of the panel/plaquette (so update nrows and ncols), 
 //----------------------------------------------------------------------------
 bool MTDThresholdClusterizer::setup(const MTDGeometry* geom, const MTDTopology* topo, const DetId& id) 
-{
+{ 
   theCurrentId=id;
   //using geopraphicalId here
   const auto& thedet = geom->idToDet(id);
@@ -166,7 +167,7 @@ void MTDThresholdClusterizer::clusterize( const FTLRecHitCollection & input,
     //  on the way, and store them in theSeeds.
     for(auto itr = range.first; itr != range.second; ++itr) {
       const unsigned hitidx = itr->second;
-      copy_to_buffer(begin+hitidx);
+      copy_to_buffer(begin+hitidx, geom, topo);
     }
     
     FTLClusterCollection::FastFiller clustersOnDet(output,id);
@@ -216,17 +217,65 @@ void MTDThresholdClusterizer::clear_buffer( RecHitIterator itr )
 //----------------------------------------------------------------------------
 //! \brief Copy FTLRecHit into the buffer, identify seeds.
 //----------------------------------------------------------------------------
-void MTDThresholdClusterizer::copy_to_buffer( RecHitIterator itr ) 
+void MTDThresholdClusterizer::copy_to_buffer( RecHitIterator itr, const MTDGeometry* geom, const MTDTopology* topo ) 
 {
+    MTDDetId mtdId=MTDDetId(itr->detid());
     int row = itr->row();
     int col = itr->column();
+    int SubDet = 0;
     float energy = itr->energy();
     float time = itr->time();
     float timeError = itr->timeError();
+    float position = itr->position().second;
+    //float positionError = itr->positionError();
+    //int new_col = round((position*64.)/57.);
+    //float position = 0.0;
+    //float positionError = 0.0;
+    float x = -999.0; 
+    float y = -999.0;
+    float z = -999.0;
+    float xError = 0.3;
+    float yError = 0.3;		//error in cm
+    float zError = 0.6;
+    if( mtdId.mtdSubDetector() == MTDDetId::BTL )
+    {
+	  SubDet = 1;
+          BTLDetId id = itr->id();
+	  DetId geoId = id.geographicalId( (BTLDetId::CrysLayout) topo->getMTDTopologyMode() );
+	  const auto& det = geom -> idToDet(geoId);
+	  const ProxyMTDTopology& topoproxy = static_cast<const ProxyMTDTopology&>(det->topology());
+	  const RectangularMTDTopology& topo = static_cast<const RectangularMTDTopology&>(topoproxy.specificTopology());    
+          MeasurementPoint mp(row,col);
+	  LocalPoint lp_ctr = topo.localPosition(mp);
+	  float z_offset = 2.85-(position/10.);  //need to add the offset as the distance from centre to edge (z direction in global and y direction in local)
+	  LocalPoint lp(lp_ctr.x(),lp_ctr.y()+z_offset,lp_ctr.z());
+	  //std::cout << "lp.x: " << lp.x() << " lp.y: " << lp.y() <<" pos: "<<position << std::endl;
+	  GlobalPoint gp = det->toGlobal(lp);
+  	  x = gp.x();
+	  y = gp.y();
+	  z = gp.z();
+	  //float z_offset = 2.85-position;  //need to add the offset as the distance from centre to edge (z direction)
+    }
+    else if( mtdId.mtdSubDetector() == MTDDetId::ETL )
+    {
+	  SubDet = -1;
+	  ETLDetId id = itr->id();
+	  DetId geoId = id.geographicalId( );
+	  const auto& det = geom -> idToDet(geoId);
+	  const ProxyMTDTopology& topoproxy = static_cast<const ProxyMTDTopology&>(det->topology());
+	  const RectangularMTDTopology& topo = static_cast<const RectangularMTDTopology&>(topoproxy.specificTopology());    
+	  
+	  MeasurementPoint mp(row,col);
+	  LocalPoint lp = topo.localPosition(mp);
+	  GlobalPoint gp = det->toGlobal(lp);
+	  x = gp.x();
+	  y = gp.y();
+    	  z = gp.z();
+    }
 
     DEBUG("ROW " <<  row << " COL " << col << " ENERGY " << energy << " TIME " << time);
     if ( energy > theHitThreshold) {
-      theBuffer.set( row, col, energy , time, timeError); 
+      theBuffer.set( row, col, SubDet, energy, time, timeError, x, xError, y, yError, z, zError); 
       if ( energy > theSeedThreshold) theSeeds.push_back( FTLCluster::FTLHitPos(row,col));
       //sort seeds?
     }
@@ -241,11 +290,21 @@ MTDThresholdClusterizer::make_cluster( const FTLCluster::FTLHitPos& hit )
 {
   
   //First we acquire the seeds for the clusters
+  const float thePositionThreshold = 0;   //in cm 
+
+  float seed_subdet= theBuffer.SubDet(hit.row(),hit.col());
   float seed_energy= theBuffer.energy(hit.row(), hit.col());
   float seed_time= theBuffer.time(hit.row(), hit.col());
   float seed_time_error= theBuffer.time_error(hit.row(), hit.col());
+  float seed_x= theBuffer.x(hit.row(), hit.col());
+  float seed_x_error= theBuffer.x_error(hit.row(), hit.col());
+  float seed_y= theBuffer.y(hit.row(), hit.col());
+  float seed_y_error= theBuffer.y_error(hit.row(), hit.col());
+  float seed_z= theBuffer.z(hit.row(), hit.col());
+  float seed_z_error= theBuffer.z_error(hit.row(), hit.col());
   theBuffer.clear(hit);
   
+  //std::cout << "seed x: " << seed_x <<"+-"<< seed_x_error << "  seed y: " << seed_y << "+-" << seed_y_error << std::endl;
   AccretionCluster acluster;
   acluster.add(hit, seed_energy, seed_time, seed_time_error);
   
@@ -260,6 +319,11 @@ MTDThresholdClusterizer::make_cluster( const FTLCluster::FTLHitPos& hit )
 	  if ( theBuffer.energy(r,c) > theHitThreshold) {
 	    if (std::abs(theBuffer.time(r,c) - seed_time) > theTimeThreshold*sqrt( theBuffer.time_error(r,c)*theBuffer.time_error(r,c) + seed_time_error*seed_time_error))
 	      continue;
+            if ((seed_subdet == 1) && (theBuffer.SubDet(r,c) == 1)){
+	      if (sqrt(pow((theBuffer.x(r,c) - seed_x),2)+pow((theBuffer.y(r,c)-seed_y),2)+pow((theBuffer.z(r,c)-seed_z),2)) > thePositionThreshold*sqrt( theBuffer.x_error(r,c)*theBuffer.x_error(r,c) + seed_x_error*seed_x_error + theBuffer.y_error(r,c)*theBuffer.y_error(r,c) + seed_y_error*seed_y_error + theBuffer.z_error(r,c)*theBuffer.z_error(r,c) + seed_z_error*seed_z_error ))
+                continue;
+	    }
+	    
 	    FTLCluster::FTLHitPos newhit(r,c);
 	    if (!acluster.add( newhit, theBuffer.energy(r,c), theBuffer.time(r,c), theBuffer.time_error(r,c))) 
 	      {

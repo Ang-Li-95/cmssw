@@ -84,7 +84,7 @@ class MTDThresholdClusterizer : public MTDClusterizerBase {
   bool                             bufferAlreadySet;  // status of the buffer array
 
   bool setup(const MTDGeometry * geometry, const MTDTopology * topo, const DetId& id);
-  void copy_to_buffer( RecHitIterator itr);   
+  void copy_to_buffer( RecHitIterator itr, const MTDGeometry* geom, const MTDTopology* topo);   
   void clear_buffer( RecHitIterator itr);
   FTLCluster make_cluster( const FTLCluster::FTLHitPos& hit );
 };

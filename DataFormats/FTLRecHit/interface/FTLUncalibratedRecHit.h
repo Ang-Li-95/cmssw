@@ -23,6 +23,11 @@ class FTLUncalibratedRecHit {
   FTLUncalibratedRecHit(const DetId& detId, uint8_t row, uint8_t column, 
 			std::pair <float,float> ampl, std::pair <float,float> time,
 			float timeError, unsigned char flags = 0);
+  FTLUncalibratedRecHit(const DetId& detId, std::pair <float,float> ampl,
+                        std::pair <float,float> time, std::pair<float,float> posit, float timeError, unsigned char flags = 0);
+  FTLUncalibratedRecHit(const DetId& detId, uint8_t row, uint8_t column,
+                        std::pair <float,float> ampl, std::pair <float,float> time, std::pair<float,float> posit,
+                        float timeError, unsigned char flags = 0);
 
   ~FTLUncalibratedRecHit();
   std::pair <float,float> amplitude() const { return amplitude_; }
@@ -31,6 +36,8 @@ class FTLUncalibratedRecHit {
   float timeError() const {return timeError_; }
 
   unsigned char flags() const { return flags_; };
+
+  std::pair <float,float> position() const { return position_; }
 
   DetId  id() const { return id_; }
   int row() const { return row_; }
@@ -44,6 +51,8 @@ class FTLUncalibratedRecHit {
   void setFlagBit(Flags flag);
   bool checkFlag(Flags flag) const;
 
+  void setPosition( std::pair <float,float> position ) { position_ = position; }
+
   bool isTimeValid() const;
   bool isTimeErrorValid() const;
 
@@ -52,6 +61,7 @@ class FTLUncalibratedRecHit {
  private:
   std::pair <float,float> amplitude_;
   std::pair <float,float> time_;
+  std::pair <float,float> position_;
   float timeError_;  
   DetId  id_;
   uint8_t row_, column_;
