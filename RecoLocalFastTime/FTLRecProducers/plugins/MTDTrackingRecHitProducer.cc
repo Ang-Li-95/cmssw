@@ -17,6 +17,7 @@
 #include "RecoLocalFastTime/Records/interface/MTDCPERecord.h"
 #include "RecoLocalFastTime/FTLClusterizer/interface/MTDClusterParameterEstimator.h"
 #include "RecoLocalFastTime/FTLClusterizer/interface/MTDCPEBase.h"
+#include "RecoLocalFastTime/FTLClusterizer/interface/MTDCPEFromSiPMTime.h"
 
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
@@ -70,7 +71,7 @@ MTDTrackingRecHitProducer::produce(edm::Event& evt, const edm::EventSetup& es) {
   geom_ = geom.product();
 
   edm::ESHandle<MTDClusterParameterEstimator> cpe;
-  es.get<MTDCPERecord>().get("MTDCPEBase",cpe);
+  es.get<MTDCPERecord>().get("MTDCPEFromSiPMTime",cpe);
   cpe_ = cpe.product();
   
   edm::Handle< FTLClusterCollection > inputBarrel;
@@ -116,6 +117,8 @@ void MTDTrackingRecHitProducer::run(edm::Handle<FTLClusterCollection>  inputHand
     
     for ( ; clustIt != clustEnd; clustIt++) {
 	DEBUG("Cluster: size " << clustIt->size() << " " << clustIt->x() << "," << clustIt->y() << " " << clustIt->energy() << " " << clustIt->time());
+	//if (clustIt->size()>1)
+  std::cout << "Cluster: size " << clustIt->size() << " " << clustIt->x() << "," << clustIt->y() << " " << clustIt->energy() << " " << clustIt->time() << std::endl;
 	MTDClusterParameterEstimator::ReturnType tuple = cpe_->getParameters( *clustIt, *genericDet );
 	LocalPoint lp( std::get<0>(tuple) );
 	LocalError le( std::get<1>(tuple) );
@@ -125,11 +128,17 @@ void MTDTrackingRecHitProducer::run(edm::Handle<FTLClusterCollection>  inputHand
 	edm::Ref< edmNew::DetSetVector<FTLCluster>, FTLCluster > cluster = edmNew::makeRefTo( inputHandle, clustIt);
 	// Make a RecHit and add it to the DetSet
 	MTDTrackingRecHit hit( lp, le, *genericDet, cluster);
-	DEBUG("MTD_TRH: " << hit.localPosition().x() << "," << hit.localPosition().y() 
+	/*
+  std::cout << "MTD_TRH: " << hit.localPosition().x() << "," << hit.localPosition().y()
+		  << " : " << hit.localPositionError().xx() << "," << hit.localPositionError().yy()
+		  << " : " << hit.time() << " : " << hit.timeError() << std::endl;
+	*/
+  DEBUG("MTD_TRH: " << hit.localPosition().x() << "," << hit.localPosition().y() 
 	      << " : " << hit.localPositionError().xx() << "," << hit.localPositionError().yy() 
 	      << " : " << hit.time() << " : " << hit.timeError());	
 	// Now save it =================
 	recHitsOnDet.push_back(hit);
+  std::cout << "pushing a tracking recHit" << std::endl;
     } //  <-- End loop on Clusters      
   } //    <-- End loop on DetUnits
   DEBUG("outputCollection " << output.size());    

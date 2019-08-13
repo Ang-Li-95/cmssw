@@ -2,10 +2,8 @@
 #include "Geometry/MTDGeometryBuilder/interface/RectangularMTDTopology.h"
 #include "Geometry/MTDGeometryBuilder/interface/ProxyMTDTopology.h"
 
+#include "RecoLocalFastTime/FTLClusterizer/interface/MTDCPEFromSiPMTime.h"
 #include "Geometry/CommonDetUnit/interface/GeomDetEnumerators.h"
-
-#include "RecoLocalFastTime/FTLClusterizer/interface/MTDCPEBase.h"
-
 // MessageLogger
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
@@ -21,18 +19,19 @@ using namespace std;
 //  A constructor run for generic and templates
 //
 //-----------------------------------------------------------------------------
-MTDCPEBase::MTDCPEBase(edm::ParameterSet const & conf,
-		       const MTDGeometry& geom)
-  : geom_(geom)
+MTDCPEFromSiPMTime::MTDCPEFromSiPMTime(edm::ParameterSet const & conf,
+		       		       const MTDGeometry& geom)
+  : MTDCPEBase(conf, geom)
 {
-   fillDetParams();
+   //fillDetParams();
 }
 
 
 //-----------------------------------------------------------------------------
 //  Fill all variables which are constant for an event (geometry)
 //-----------------------------------------------------------------------------
-void MTDCPEBase::fillDetParams()
+/*
+void MTDCPEFromSiPMTime::fillDetParams()
 {
   auto const & dus = geom_.detUnits();
   unsigned detectors = dus.size();
@@ -62,12 +61,7 @@ void MTDCPEBase::fillDetParams()
       std::pair<float,float> pitchxy = p.theRecTopol->pitch();
       p.thePitchX = pitchxy.first;	     // pitch along x
       p.thePitchY = pitchxy.second;	     // pitch along y
-      /*      
-      std::cout << " thePart = " << p.thePart
-                << " theThickness = " << p.theThickness
-                << " thePitchX  = " << p.thePitchX
-                << " thePitchY  = " << p.thePitchY<<std::endl;
-      */
+            
       LogDebug("MTDCPEBase::fillDetParams()") << "***** MTD LAYOUT *****"
 					      << " thePart = " << p.thePart
 					      << " theThickness = " << p.theThickness
@@ -88,39 +82,46 @@ MTDCPEBase::setTheClu( DetParam const & dp, ClusterParam & cp ) const
 MTDCPEBase::DetParam const & MTDCPEBase::detParam(const GeomDetUnit & det) const 
 {
   return m_DetParams.at(det.index());
-}
-
+}*/
+/*
 LocalPoint
-MTDCPEBase::localPosition(DetParam const & dp, ClusterParam & cp) const
+MTDCPEFromSiPMTime::localPosition(DetParam const & dp, ClusterParam & cp) const
 {
   //remember measurement point is row(col)+0.5f
   MeasurementPoint pos(cp.theCluster->x(),cp.theCluster->y());
   return dp.theTopol->localPosition(pos);
 }
-
+*/
 LocalError
-MTDCPEBase::localError(DetParam const & dp,  ClusterParam & cp) const
+MTDCPEFromSiPMTime::localError(DetParam const & dp,  ClusterParam & cp) const
 {
-  if (GeomDetEnumerators::isBarrel(dp.thePart) ) {  std::cout <<"BTL"<< std::endl;}
-  if (GeomDetEnumerators::isEndcap(dp.thePart) ) {  std::cout <<"ETL"<< std::endl;}
   constexpr double one_over_twelve = 1./12.;
   //constexpr double one_over_twelve = 10;
   MeasurementPoint pos(cp.theCluster->x(),cp.theCluster->y());
-  //MeasurementError simpleRect(1.,0,1./12.);
   MeasurementError simpleRect(one_over_twelve,0,one_over_twelve);
-  //std::cout << "calc error..." << std::endl;
+  if (GeomDetEnumerators::isBarrel(dp.thePart) ){
+    MeasurementError simpleRect_new(one_over_twelve,0,0.0164);
+    simpleRect = simpleRect_new;
+  }
+  /*
+  else {
+  if (GeomDetEnumerators::isEndcap(dp.thePart) ){
+    MeasurementError simpleRect(one_over_twelve,0,one_over_twelve);
+  }*/
   return dp.theTopol->localError(pos,simpleRect);
-}
 
-MTDCPEBase::TimeValue
-MTDCPEBase::clusterTime(DetParam const & dp, ClusterParam & cp) const
+
+}
+/*
+MTDCPEFromSiPMTime::TimeValue
+MTDCPEFromSiPMTime::clusterTime(DetParam const & dp, ClusterParam & cp) const
 {
   return cp.theCluster->time();
 }
 
 
-MTDCPEBase::TimeValueError
-MTDCPEBase::clusterTimeError(DetParam const & dp, ClusterParam & cp) const
+MTDCPEFromSiPMTime::TimeValueError
+MTDCPEFromSiPMTime::clusterTimeError(DetParam const & dp, ClusterParam & cp) const
 {
   return cp.theCluster->timeError();
-}
+}*/

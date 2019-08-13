@@ -290,7 +290,7 @@ MTDThresholdClusterizer::make_cluster( const FTLCluster::FTLHitPos& hit )
 {
   
   //First we acquire the seeds for the clusters
-  const float thePositionThreshold = 0;   //in cm 
+  const float thePositionThreshold = 4.0;   //# sigmas 
 
   float seed_subdet= theBuffer.SubDet(hit.row(),hit.col());
   float seed_energy= theBuffer.energy(hit.row(), hit.col());
@@ -319,7 +319,8 @@ MTDThresholdClusterizer::make_cluster( const FTLCluster::FTLHitPos& hit )
 	  if ( theBuffer.energy(r,c) > theHitThreshold) {
 	    if (std::abs(theBuffer.time(r,c) - seed_time) > theTimeThreshold*sqrt( theBuffer.time_error(r,c)*theBuffer.time_error(r,c) + seed_time_error*seed_time_error))
 	      continue;
-            if ((seed_subdet == 1) && (theBuffer.SubDet(r,c) == 1)){
+            //if(0){
+	    if ((seed_subdet == 1) && (theBuffer.SubDet(r,c) == 1)){
 	      if (sqrt(pow((theBuffer.x(r,c) - seed_x),2)+pow((theBuffer.y(r,c)-seed_y),2)+pow((theBuffer.z(r,c)-seed_z),2)) > thePositionThreshold*sqrt( theBuffer.x_error(r,c)*theBuffer.x_error(r,c) + seed_x_error*seed_x_error + theBuffer.y_error(r,c)*theBuffer.y_error(r,c) + seed_y_error*seed_y_error + theBuffer.z_error(r,c)*theBuffer.z_error(r,c) + seed_z_error*seed_z_error ))
                 continue;
 	    }

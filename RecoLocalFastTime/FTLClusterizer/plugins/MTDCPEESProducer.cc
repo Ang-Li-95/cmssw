@@ -1,6 +1,7 @@
 #include "RecoLocalFastTime/Records/interface/MTDCPERecord.h"
 #include "RecoLocalFastTime/FTLClusterizer/interface/MTDClusterParameterEstimator.h"
 #include "RecoLocalFastTime/FTLClusterizer/interface/MTDCPEBase.h"
+#include "RecoLocalFastTime/FTLClusterizer/interface/MTDCPEFromSiPMTime.h"
 
 #include "Geometry/Records/interface/MTDDigiGeometryRecord.h"
 
@@ -33,7 +34,7 @@ class  MTDCPEESProducer: public edm::ESProducer
 MTDCPEESProducer::MTDCPEESProducer(const edm::ParameterSet & p) 
 {
   pset_ = p;
-  setWhatProduced(this,"MTDCPEBase");
+  setWhatProduced(this,"MTDCPEFromSiPMTime");
 }
 
 // Configuration descriptions
@@ -49,7 +50,7 @@ MTDCPEESProducer::produce(const MTDCPERecord & iRecord)
   edm::ESHandle<MTDGeometry> pDD;
   iRecord.getRecord<MTDDigiGeometryRecord>().get( pDD );
   
-  return std::make_unique<MTDCPEBase>(
+  return std::make_unique<MTDCPEFromSiPMTime>(
                          pset_,
 			 *pDD.product()
 				      );
