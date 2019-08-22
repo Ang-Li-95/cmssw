@@ -330,6 +330,7 @@ LocalError
 RectangularMTDTopology::localError( const MeasurementPoint& mp,
 				      const MeasurementError& me ) const
 {
+  //std::cout << "	********ohuo" << std::endl;
   float pitchy=m_pitchy;
   int binoffy=int(mp.y());
   if( isItBigPixelInY(binoffy) )pitchy = 2.*m_pitchy;
@@ -338,6 +339,7 @@ RectangularMTDTopology::localError( const MeasurementPoint& mp,
   int binoffx=int(mp.x());
   if( isItBigPixelInX(binoffx) )pitchx = 2.*m_pitchx;
 
+  //std::cout << "****** " << me.uu()*float(pitchx*pitchx) << "  *********  " << me.vv()*float(pitchy*pitchy) << std::endl;
   return LocalError( me.uu()*float(pitchx*pitchx), 0,
 		     me.vv()*float(pitchy*pitchy));
 }

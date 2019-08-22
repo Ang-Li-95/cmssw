@@ -95,7 +95,7 @@ private:
    //--------------------------------------------------------------------------
    // This is where the action happens.
    //--------------------------------------------------------------------------
-   //virtual LocalPoint localPosition(DetParam const & dp, ClusterParam & cp) const;
+   virtual LocalPoint localPosition(DetParam const & dp, ClusterParam & cp) const override;
    virtual LocalError localError   (DetParam const & dp, ClusterParam & cp) const override;
    //virtual TimeValue  clusterTime(DetParam const & dp, ClusterParam & cp) const;
    //virtual TimeValueError  clusterTimeError(DetParam const & dp, ClusterParam & cp) const;

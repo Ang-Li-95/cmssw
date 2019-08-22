@@ -48,6 +48,8 @@
 
 #include "Geometry/MTDGeometryBuilder/interface/MTDGeometry.h"
 
+#include "RecoLocalFastTime/FTLClusterizer/interface/BTLRecHitsErrorEstimatorIM.h"
+
 class MTDThresholdClusterizer : public MTDClusterizerBase {
  public:
 

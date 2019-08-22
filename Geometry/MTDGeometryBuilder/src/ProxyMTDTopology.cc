@@ -34,6 +34,7 @@ LocalPoint ProxyMTDTopology::localPosition( const MeasurementPoint& mp,
 LocalError ProxyMTDTopology::localError( const MeasurementPoint& mp,
 					 const MeasurementError& me ) const
 {
+	//std::cout << "Proxy..." << std::endl;
   return specificTopology().localError(mp, me);
 }
 

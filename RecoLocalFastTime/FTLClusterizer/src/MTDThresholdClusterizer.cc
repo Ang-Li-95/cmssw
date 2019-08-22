@@ -231,30 +231,42 @@ void MTDThresholdClusterizer::copy_to_buffer( RecHitIterator itr, const MTDGeome
     //int new_col = round((position*64.)/57.);
     //float position = 0.0;
     //float positionError = 0.0;
-    float x = -999.0; 
-    float y = -999.0;
-    float z = -999.0;
-    float xError = 0.3;
-    float yError = 0.3;		//error in cm
-    float zError = 0.6;
+    //float x = -999.0; 
+    //float y = -999.0;
+    //float z = -999.0;
+    //float xError = 0.3;
+    //float yError = 0.3;		//error in cm
+    //float zError = 0.6;
+    LocalError local_error(0,0,0);
+    GlobalPoint global_point(0,0,0);
     if( mtdId.mtdSubDetector() == MTDDetId::BTL )
     {
-	  SubDet = 1;
-          BTLDetId id = itr->id();
-	  DetId geoId = id.geographicalId( (BTLDetId::CrysLayout) topo->getMTDTopologyMode() );
-	  const auto& det = geom -> idToDet(geoId);
+    SubDet = 1;
+    BTLDetId id = itr->id();
+    DetId geoId = id.geographicalId( (BTLDetId::CrysLayout) topo->getMTDTopologyMode() );
+    const auto& det = geom -> idToDet(geoId);
 	  const ProxyMTDTopology& topoproxy = static_cast<const ProxyMTDTopology&>(det->topology());
-	  const RectangularMTDTopology& topo = static_cast<const RectangularMTDTopology&>(topoproxy.specificTopology());    
-          MeasurementPoint mp(row,col);
-	  LocalPoint lp_ctr = topo.localPosition(mp);
+	  const RectangularMTDTopology& topol = static_cast<const RectangularMTDTopology&>(topoproxy.specificTopology());    
+    MeasurementPoint mp(row,col);
+	  LocalPoint lp_ctr = topol.localPosition(mp);
 	  float z_offset = 2.85-(position/10.);  //need to add the offset as the distance from centre to edge (z direction in global and y direction in local)
 	  LocalPoint lp(lp_ctr.x(),lp_ctr.y()+z_offset,lp_ctr.z());
 	  //std::cout << "lp.x: " << lp.x() << " lp.y: " << lp.y() <<" pos: "<<position << std::endl;
 	  GlobalPoint gp = det->toGlobal(lp);
-  	  x = gp.x();
-	  y = gp.y();
-	  z = gp.z();
-	  //float z_offset = 2.85-position;  //need to add the offset as the distance from centre to edge (z direction)
+    //local_error = lp;
+    global_point = gp;
+    //x = gp.x();
+	  //y = gp.y();
+	  //z = gp.z();
+    //std::cout << "ao: " << x << " " << y << " " << z << std::endl;
+	  BTLRecHitsErrorEstimatorIM I(det,lp);
+    LocalError err_modified = I.localError();
+    local_error = err_modified;
+    //xError = err_modified.xx();
+    //yError = err_modified.xy();
+    //zError = err_modified.yy();
+    //std::cout << "err: " << err_modified.xx() << "  " << err_modified.xy() << "  " << err_modified.yy() << std::endl;
+    //float z_offset = 2.85-position;  //need to add the offset as the distance from centre to edge (z direction)
     }
     else if( mtdId.mtdSubDetector() == MTDDetId::ETL )
     {
@@ -263,19 +275,24 @@ void MTDThresholdClusterizer::copy_to_buffer( RecHitIterator itr, const MTDGeome
 	  DetId geoId = id.geographicalId( );
 	  const auto& det = geom -> idToDet(geoId);
 	  const ProxyMTDTopology& topoproxy = static_cast<const ProxyMTDTopology&>(det->topology());
-	  const RectangularMTDTopology& topo = static_cast<const RectangularMTDTopology&>(topoproxy.specificTopology());    
+	  const RectangularMTDTopology& topol = static_cast<const RectangularMTDTopology&>(topoproxy.specificTopology());    
 	  
 	  MeasurementPoint mp(row,col);
-	  LocalPoint lp = topo.localPosition(mp);
+	  LocalPoint lp = topol.localPosition(mp);
 	  GlobalPoint gp = det->toGlobal(lp);
-	  x = gp.x();
-	  y = gp.y();
-    	  z = gp.z();
+	  global_point = gp;global_point = gp;
+    //x = gp.x();
+	  //y = gp.y();
+    //z = gp.z();
     }
 
     DEBUG("ROW " <<  row << " COL " << col << " ENERGY " << energy << " TIME " << time);
     if ( energy > theHitThreshold) {
-      theBuffer.set( row, col, SubDet, energy, time, timeError, x, xError, y, yError, z, zError); 
+      //std::cout << "gb: " << global_point.x() << " " << global_point.y() << "  " << global_point.z() << std::endl;
+      //std::cout << "le: " << local_error.xx() << "  " << local_error.yy() << std::endl;
+      theBuffer.set( row, col, SubDet, energy, time, timeError, local_error, global_point); 
+      //std::cout << "Buf_gp: " << theBuffer.global_point(row,col).x() << " " << theBuffer.global_point(row,col).y() << " " << theBuffer.global_point(row,col).z()<< std::endl;
+      //std::cout << "Buf_le: " << theBuffer.local_error(row,col).xx() << " " << theBuffer.local_error(row,col).yy() << std::endl;
       if ( energy > theSeedThreshold) theSeeds.push_back( FTLCluster::FTLHitPos(row,col));
       //sort seeds?
     }
@@ -296,12 +313,20 @@ MTDThresholdClusterizer::make_cluster( const FTLCluster::FTLHitPos& hit )
   float seed_energy= theBuffer.energy(hit.row(), hit.col());
   float seed_time= theBuffer.time(hit.row(), hit.col());
   float seed_time_error= theBuffer.time_error(hit.row(), hit.col());
-  float seed_x= theBuffer.x(hit.row(), hit.col());
-  float seed_x_error= theBuffer.x_error(hit.row(), hit.col());
-  float seed_y= theBuffer.y(hit.row(), hit.col());
-  float seed_y_error= theBuffer.y_error(hit.row(), hit.col());
-  float seed_z= theBuffer.z(hit.row(), hit.col());
-  float seed_z_error= theBuffer.z_error(hit.row(), hit.col());
+  double seed_eta = theBuffer.global_point(hit.row(),hit.col()).eta();
+  double seed_phi = theBuffer.global_point(hit.row(),hit.col()).phi();
+  double seed_z = theBuffer.global_point(hit.row(),hit.col()).z();
+  double seed_x= theBuffer.global_point(hit.row(), hit.col()).x();
+  //float seed_x_error= theBuffer.x_error(hit.row(), hit.col());
+  double seed_y= theBuffer.global_point(hit.row(), hit.col()).y();
+  double seed_error_xx = theBuffer.local_error(hit.row(), hit.col()).xx();
+  double seed_error_yy = theBuffer.local_error(hit.row(), hit.col()).yy();
+  //float seed_y_error= theBuffer.y_error(hit.row(), hit.col());
+  //float seed_z= theBuffer.z(hit.row(), hit.col());
+  //float seed_z_error= theBuffer.z_error(hit.row(), hit.col());
+  double R = theBuffer.global_point(hit.row(), hit.col()).transverse();
+  //std::cout << "R: " << R << std::endl;
+  //std::cout << "trans: " << theBuffer.global_point(hit.row(), hit.col()).transverse();
   theBuffer.clear(hit);
   
   //std::cout << "seed x: " << seed_x <<"+-"<< seed_x_error << "  seed y: " << seed_y << "+-" << seed_y_error << std::endl;
@@ -314,26 +339,33 @@ MTDThresholdClusterizer::make_cluster( const FTLCluster::FTLHitPos& hit )
     {
       //This is the standard algorithm to find and add a hit
       auto curInd = acluster.top(); acluster.pop();
-      for ( auto c = std::max(0,int(acluster.y[curInd]-1)); c < std::min(int(acluster.y[curInd]+2),int(theBuffer.columns())) && !stopClus; ++c) {
+    for ( auto c = std::max(0,int(acluster.y[curInd]-1)); c < std::min(int(acluster.y[curInd]+2),int(theBuffer.columns())) && !stopClus; ++c) {
 	  for ( auto r = std::max(0,int(acluster.x[curInd]-1)); r < std::min(int(acluster.x[curInd]+2),int(theBuffer.rows()))  && !stopClus; ++r)  {
 	  if ( theBuffer.energy(r,c) > theHitThreshold) {
 	    if (std::abs(theBuffer.time(r,c) - seed_time) > theTimeThreshold*sqrt( theBuffer.time_error(r,c)*theBuffer.time_error(r,c) + seed_time_error*seed_time_error))
 	      continue;
-            //if(0){
+      //if(0){
 	    if ((seed_subdet == 1) && (theBuffer.SubDet(r,c) == 1)){
-	      if (sqrt(pow((theBuffer.x(r,c) - seed_x),2)+pow((theBuffer.y(r,c)-seed_y),2)+pow((theBuffer.z(r,c)-seed_z),2)) > thePositionThreshold*sqrt( theBuffer.x_error(r,c)*theBuffer.x_error(r,c) + seed_x_error*seed_x_error + theBuffer.y_error(r,c)*theBuffer.y_error(r,c) + seed_y_error*seed_y_error + theBuffer.z_error(r,c)*theBuffer.z_error(r,c) + seed_z_error*seed_z_error ))
-                continue;
+	      double R_hit = theBuffer.global_point(r,c).transverse();
+        double x_hit = theBuffer.global_point(r,c).x();
+        double y_hit = theBuffer.global_point(r,c).y();
+        double z_hit = theBuffer.global_point(r,c).z();
+        double hit_error_xx = theBuffer.local_error(r,c).xx();
+        double hit_error_yy = theBuffer.local_error(r,c).yy();
+        //std::cout << (R_hit-R)*(R_hit-R)<<"    "<<pow((x_hit-seed_x),2)+pow((y_hit-seed_y),2)+pow((z_hit-seed_z),2) << std::endl;
+        if (sqrt(pow((x_hit - seed_x),2)+pow((y_hit-seed_y),2)+pow((z_hit-seed_z),2)) > thePositionThreshold*sqrt( hit_error_xx + seed_error_xx + hit_error_yy + seed_error_yy ))
+          continue;
 	    }
 	    
 	    FTLCluster::FTLHitPos newhit(r,c);
 	    if (!acluster.add( newhit, theBuffer.energy(r,c), theBuffer.time(r,c), theBuffer.time_error(r,c))) 
 	      {
-		stopClus=true;
-		break;
+          stopClus=true;
+          break;
 	      }
 	    theBuffer.clear(newhit);
 	  }
-	}
+	    }
       }
     }  // while accretion
   

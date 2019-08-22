@@ -118,7 +118,7 @@ void MTDTrackingRecHitProducer::run(edm::Handle<FTLClusterCollection>  inputHand
     for ( ; clustIt != clustEnd; clustIt++) {
 	DEBUG("Cluster: size " << clustIt->size() << " " << clustIt->x() << "," << clustIt->y() << " " << clustIt->energy() << " " << clustIt->time());
 	//if (clustIt->size()>1)
-  std::cout << "Cluster: size " << clustIt->size() << " " << clustIt->x() << "," << clustIt->y() << " " << clustIt->energy() << " " << clustIt->time() << std::endl;
+  //std::cout << "Cluster: size " << clustIt->size() << " " << clustIt->x() << "," << clustIt->y() << " " << clustIt->energy() << " " << clustIt->time() << std::endl;
 	MTDClusterParameterEstimator::ReturnType tuple = cpe_->getParameters( *clustIt, *genericDet );
 	LocalPoint lp( std::get<0>(tuple) );
 	LocalError le( std::get<1>(tuple) );
@@ -128,17 +128,17 @@ void MTDTrackingRecHitProducer::run(edm::Handle<FTLClusterCollection>  inputHand
 	edm::Ref< edmNew::DetSetVector<FTLCluster>, FTLCluster > cluster = edmNew::makeRefTo( inputHandle, clustIt);
 	// Make a RecHit and add it to the DetSet
 	MTDTrackingRecHit hit( lp, le, *genericDet, cluster);
-	/*
-  std::cout << "MTD_TRH: " << hit.localPosition().x() << "," << hit.localPosition().y()
-		  << " : " << hit.localPositionError().xx() << "," << hit.localPositionError().yy()
-		  << " : " << hit.time() << " : " << hit.timeError() << std::endl;
-	*/
+	
+  //std::cout << "MTD_TRH: " << hit.localPosition().x() << "," << hit.localPosition().y()
+	//	  << " : " << hit.localPositionError().xx() << "," << hit.localPositionError().yy()
+	//	  << " : " << hit.time() << " : " << hit.timeError() << std::endl;
+	
   DEBUG("MTD_TRH: " << hit.localPosition().x() << "," << hit.localPosition().y() 
 	      << " : " << hit.localPositionError().xx() << "," << hit.localPositionError().yy() 
 	      << " : " << hit.time() << " : " << hit.timeError());	
 	// Now save it =================
 	recHitsOnDet.push_back(hit);
-  std::cout << "pushing a tracking recHit" << std::endl;
+  //std::cout << "pushing a tracking recHit" << std::endl;
     } //  <-- End loop on Clusters      
   } //    <-- End loop on DetUnits
   DEBUG("outputCollection " << output.size());    

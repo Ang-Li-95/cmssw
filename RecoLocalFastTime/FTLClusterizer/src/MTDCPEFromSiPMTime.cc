@@ -2,6 +2,8 @@
 #include "Geometry/MTDGeometryBuilder/interface/RectangularMTDTopology.h"
 #include "Geometry/MTDGeometryBuilder/interface/ProxyMTDTopology.h"
 
+#include "RecoLocalFastTime/FTLClusterizer/interface/BTLRecHitsErrorEstimatorIM.h"
+
 #include "RecoLocalFastTime/FTLClusterizer/interface/MTDCPEFromSiPMTime.h"
 #include "Geometry/CommonDetUnit/interface/GeomDetEnumerators.h"
 // MessageLogger
@@ -83,7 +85,7 @@ MTDCPEBase::DetParam const & MTDCPEBase::detParam(const GeomDetUnit & det) const
 {
   return m_DetParams.at(det.index());
 }*/
-/*
+
 LocalPoint
 MTDCPEFromSiPMTime::localPosition(DetParam const & dp, ClusterParam & cp) const
 {
@@ -91,7 +93,7 @@ MTDCPEFromSiPMTime::localPosition(DetParam const & dp, ClusterParam & cp) const
   MeasurementPoint pos(cp.theCluster->x(),cp.theCluster->y());
   return dp.theTopol->localPosition(pos);
 }
-*/
+
 LocalError
 MTDCPEFromSiPMTime::localError(DetParam const & dp,  ClusterParam & cp) const
 {
@@ -100,16 +102,23 @@ MTDCPEFromSiPMTime::localError(DetParam const & dp,  ClusterParam & cp) const
   MeasurementPoint pos(cp.theCluster->x(),cp.theCluster->y());
   MeasurementError simpleRect(one_over_twelve,0,one_over_twelve);
   if (GeomDetEnumerators::isBarrel(dp.thePart) ){
-    MeasurementError simpleRect_new(one_over_twelve,0,0.0164);
-    simpleRect = simpleRect_new;
+    LocalPoint lp = localPosition(dp,cp);
+    BTLRecHitsErrorEstimatorIM IM(dp.theDet,lp);
+    LocalError err_improved = IM.localError();
+    return err_improved;
+    //std::cout << "mp: " << cp.theCluster->x() << "  " << cp.theCluster->y() << std::endl;
+    //std::cout << "Tracking err: " << err_improved.xx() << " " << err_improved.yy() << std::endl;
+    //MeasurementError simpleRect_new(one_over_twelve,0,0.0164);
+    //simpleRect = simpleRect_new;
   }
   /*
   else {
   if (GeomDetEnumerators::isEndcap(dp.thePart) ){
     MeasurementError simpleRect(one_over_twelve,0,one_over_twelve);
   }*/
-  return dp.theTopol->localError(pos,simpleRect);
-
+  else {
+    return dp.theTopol->localError(pos,simpleRect);
+  }
 
 }
 /*
