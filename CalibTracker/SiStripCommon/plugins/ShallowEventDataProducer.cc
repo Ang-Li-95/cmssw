@@ -19,8 +19,10 @@ ShallowEventDataProducer::ShallowEventDataProducer(const edm::ParameterSet& iCon
   trig_token_ = consumes<L1GlobalTriggerReadoutRecord>(iConfig.getParameter<edm::InputTag>("trigRecord"));
 #endif
 
+  isRECO_ = iConfig.getParameter<bool>("isRECO");
   scalerToken_ = consumes<LumiScalersCollection>(iConfig.getParameter<edm::InputTag>("lumiScalers"));
   metaDataToken_ = consumes<OnlineLuminosityRecord>(iConfig.getParameter<edm::InputTag>("metadata"));
+  pileupinfosToken_ = consumes<std::vector<PileupSummaryInfo>>(iConfig.getParameter<edm::InputTag>("PUInfo"));
 }
 
 void ShallowEventDataProducer::produce(edm::StreamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const {
@@ -58,23 +60,45 @@ void ShallowEventDataProducer::produce(edm::StreamID, edm::Event& iEvent, const 
 #endif
 
   // Luminosity informations
-  edm::Handle<LumiScalersCollection> lumiScalers = iEvent.getHandle(scalerToken_);
-  edm::Handle<OnlineLuminosityRecord> metaData = iEvent.getHandle(metaDataToken_);
-
   float instLumi_ = 0;
   float PU_ = 0;
 
-  if (lumiScalers.isValid() && !lumiScalers->empty()) {
-    if (lumiScalers->begin() != lumiScalers->end()) {
-      instLumi_ = lumiScalers->begin()->instantLumi();
-      PU_ = lumiScalers->begin()->pileup();
+  if (!isRECO_) {
+    edm::Handle<LumiScalersCollection> lumiScalers = iEvent.getHandle(scalerToken_);
+    edm::Handle<OnlineLuminosityRecord> metaData = iEvent.getHandle(metaDataToken_);
+
+    if (lumiScalers.isValid() && !lumiScalers->empty()) {
+      if (lumiScalers->begin() != lumiScalers->end()) {
+        instLumi_ = lumiScalers->begin()->instantLumi();
+        PU_ = lumiScalers->begin()->pileup();
+        std::cout << "lumiScalers PU " << PU_ << std::endl;
+      }
+    } else if (metaData.isValid()) {
+      instLumi_ = metaData->instLumi();
+      PU_ = metaData->avgPileUp();
+      std::cout << metaData << std::endl;
+      std::cout << "metaData PU " << PU_ << std::endl;
+    } else {
+      edm::LogInfo("ShallowEventDataProducer")
+          << "LumiScalers collection not found in the event; will write dummy values";
     }
-  } else if (metaData.isValid()) {
-    instLumi_ = metaData->instLumi();
-    PU_ = metaData->avgPileUp();
-  } else {
-    edm::LogInfo("ShallowEventDataProducer")
-        << "LumiScalers collection not found in the event; will write dummy values";
+  }
+  else {
+    edm::Handle<std::vector<PileupSummaryInfo> > pileupinfos;
+    iEvent.getByToken(pileupinfosToken_, pileupinfos);
+    std::vector<PileupSummaryInfo>::const_iterator pileupinfoInTime = pileupinfos->end();
+
+    for (std::vector<PileupSummaryInfo>::const_iterator pileupinfo = pileupinfos->begin();
+      pileupinfo != pileupinfos->end();
+      ++pileupinfo) {
+    if (pileupinfo->getBunchCrossing() == 0)
+      pileupinfoInTime = pileupinfo;
+    if (pileupinfoInTime == pileupinfos->end()) {
+    edm::LogError("NoInTimePileUpInfo") << "Cannot find the in-time pileup info ";
+    } else {
+      PU_ = pileupinfoInTime->getPU_NumInteractions();
+    }
+    }
   }
 
   iEvent.emplace(instLumiPut_, instLumi_);

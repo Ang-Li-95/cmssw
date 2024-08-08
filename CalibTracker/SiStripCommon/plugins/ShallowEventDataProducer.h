@@ -7,6 +7,7 @@
 #include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutRecord.h"
 #include "DataFormats/OnlineMetaData/interface/OnlineLuminosityRecord.h"
 #include "DataFormats/Scalers/interface/LumiScalers.h"
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 #include <vector>
 
 class ShallowEventDataProducer : public edm::global::EDProducer<> {
@@ -15,8 +16,10 @@ public:
 
 private:
   void produce(edm::StreamID, edm::Event &, const edm::EventSetup &) const override;
+  bool isRECO_;
   edm::EDGetTokenT<LumiScalersCollection> scalerToken_;
   edm::EDGetTokenT<OnlineLuminosityRecord> metaDataToken_;
+  edm::EDGetTokenT<std::vector<PileupSummaryInfo>> pileupinfosToken_;
 
   edm::EDPutTokenT<unsigned int> runPut_;
   edm::EDPutTokenT<unsigned int> eventPut_;

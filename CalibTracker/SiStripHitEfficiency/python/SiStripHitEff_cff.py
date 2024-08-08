@@ -29,7 +29,7 @@ anEff = cms.EDAnalyzer("HitEff",
                        commonMode = cms.InputTag("siStripDigis", "CommonMode"),
                        addCommonMode = cms.untracked.bool(False),
                        # do not cut on the total number of tracks
-                       cutOnTracks = cms.untracked.bool(True),
+                       cutOnTracks = cms.untracked.bool(False),
                        # compatibility
                        trackMultiplicity = cms.untracked.uint32(100),
                        # use or not first and last measurement of a trajectory (biases), default is false

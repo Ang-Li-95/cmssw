@@ -11,7 +11,9 @@ process.load("Configuration.StandardSequences.GeometryRecoDB_cff")
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data', '')  
+#process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data', '')  
+process.GlobalTag = GlobalTag(process.GlobalTag, '140X_mcRun3_2023_realistic_v3', '')  
+#process.GlobalTag = GlobalTag(process.GlobalTag, '130X_mcRun3_2023_realistic_v14', '')  
 
 process.source = cms.Source("EmptyIOVSource",
     firstValue = cms.uint64(options.runNumber),
@@ -20,7 +22,7 @@ process.source = cms.Source("EmptyIOVSource",
     interval = cms.uint64(1)
 )
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1))
 
 process.SiStripHitEff = cms.EDAnalyzer("SiStripHitEffFromCalibTree",
     CalibTreeFilenames = cms.untracked.vstring(options.inputFiles),
@@ -32,7 +34,7 @@ process.SiStripHitEff = cms.EDAnalyzer("SiStripHitEffFromCalibTree",
     IOVMode           = cms.string('Run'),
     Record            = cms.string('SiStripBadStrip'),
     doStoreOnDB       = cms.bool(True),
-    BadModulesFile    = cms.untracked.string("BadModules_input.txt"),   # default "" no input
+    BadModulesFile    = cms.untracked.string("BadModules.log"),   # default "" no input
     AutoIneffModTagging = cms.untracked.bool(True),   # default true, automatic limit for each layer to identify inefficient modules
     ClusterMatchingMethod  = cms.untracked.int32(4),     # default 0  case0,1,2,3,4
     ClusterTrajDist   = cms.untracked.double(15),   # default 64
