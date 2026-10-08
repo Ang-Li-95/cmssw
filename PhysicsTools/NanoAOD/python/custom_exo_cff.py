@@ -163,6 +163,10 @@ PATmuonExtendedSimpleTable = simplePATMuonFlatTableProducer.clone(
         innerPt = Var("? innerTrack().isNonnull() && innerTrack().isAvailable() ? innerTrack().pt() : -1", float, doc=""),
         innerEta = Var("? innerTrack().isNonnull() && innerTrack().isAvailable() ? innerTrack().eta() : -5", float, doc=""),
         innerPhi = Var("? innerTrack().isNonnull() && innerTrack().isAvailable() ? innerTrack().phi() : -5", float, doc=""),
+        timeAtIpInOut    = Var("time().timeAtIpInOut",    float, doc="muon time at IP (in-out)"),
+        timeAtIpInOutErr = Var("time().timeAtIpInOutErr", float, doc="error on muon time at IP (in-out)"),
+        time_nDof        = Var("time().nDof",             int,   doc="number of dof for muon timing"),
+        inverseBeta      = Var("inverseBeta()",           float, doc="muon 1/beta from timing"),
     )
 )
 
@@ -199,6 +203,19 @@ dispJetTable = cms.EDProducer("DispJetTableProducer",
     primaryVertex = cms.InputTag("offlineSlimmedPrimaryVertices"),
     secondaryVertex = cms.InputTag("displacedInclusiveSecondaryVertices")
 )
+
+muonTrackDeDxTable = cms.EDProducer("MuonTrackDeDxTableProducer",
+    name           = cms.string("Muon"),
+    muons          = cms.InputTag("linkedObjects", "muons"),
+    isolatedTracks = cms.InputTag("isolatedTracks"),
+    dedx           = cms.InputTag("isolatedTracks"),
+)
+
+def add_muonTrackDeDxTables(process):
+    process.muonTrackDeDxTable = muonTrackDeDxTable
+    process.muonTrackDeDxTask  = cms.Task(process.muonTrackDeDxTable)
+    process.nanoTableTaskCommon.add(process.muonTrackDeDxTask)
+    return process
 
 def add_dispJetTables(process):
     # process.load('PhysicsTools.displacedInclusiveVertexing_cff')
@@ -304,6 +321,7 @@ def add_exonanoTables(process):
     process = add_dsamuonTables(process)
     process = add_electronVertexTables(process)
     process = add_dispJetTables(process)
+    process = add_muonTrackDeDxTables(process)
 
     isMC = hasattr(process, "nanoSequenceMC") and process.schedule.contains(process.nanoSequenceMC)
 
